@@ -1,0 +1,73 @@
+version: "3.8"
+
+services:
+  nginx:
+    image: "nginx:stable-alpine"
+    ports:
+      - "8000:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./src:/var/www/laravel
+    depends_on:
+      #- writer-db
+      - php
+  php:
+    build:
+      context: dockerfiles
+      dockerfile: php.Dockerfile
+    volumes:
+      - ./src:/var/www/laravel
+    #environment:
+    #  - DB_CONNECTION=writer_db
+    #  - WRITER_DB_HOST=writer-db
+    #  - WRITER_DB_PORT=3306
+    #  - WRITER_DB_DATABASE=writer_db
+    #  - WRITER_DB_USERNAME=writer_user
+    #  - WRITER_DB_PASSWORD=writer_password
+    #  - READER_DB_HOST=reader-db
+    #  - READER_DB_PORT=3306
+    #  - READER_DB_DATABASE=reader_db
+    #  - READER_DB_USERNAME=reader_user
+    #  - READER_DB_PASSWORD=reader_password
+
+  writer-db:
+    image: mysql:8.0
+    ports:
+      - "3306:3306"
+    env_file:
+      - env/writer-db-sql.env
+    volumes:
+      - writer-db-data:/var/lib/mysql
+  reader-db:
+    image: mysql:8.0
+    ports:
+      - "3307:3306"
+    env_file:
+      - env/reader-db-sql.env
+    volumes:
+      - reader-db-data:/var/lib/mysql
+  composer:
+    build:
+      context: dockerfiles
+      dockerfile: composer.Dockerfile
+    volumes:
+      - ./src:/var/www/laravel
+  artisan:
+    build:
+      context: dockerfiles
+      dockerfile: php.Dockerfile
+    volumes:
+      - ./src:/var/www/laravel
+    entrypoint: ["php", "/var/www/laravel/artisan"]
+  node:
+    image: node:18-alpine
+    ports:
+        - "3000:3000"
+    volumes:
+    - ./src:/var/www
+    working_dir: /var/www
+    tty: true
+
+volumes:
+  writer-db-data:
+  reader-db-data:
